@@ -5,7 +5,7 @@ macro_rules! define_opcode {
         /// Instruction opcodes as defined [here].
         ///
         /// [here]: https://webassembly.github.io/spec/core/binary/instructions.html
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
         #[allow(missing_docs)]
         pub enum OpCode {
             $(
