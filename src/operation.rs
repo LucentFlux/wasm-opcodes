@@ -174,6 +174,10 @@ filter_operators!(filter_define_simd(@simd) | define_proposal_operator(SIMDOpera
 for_each_operator!(filter_define_simd);
 filter_operators!(filter_define_relaxed_simd(@relaxed_simd) | define_proposal_operator(RelaxedSIMDOperator, RelaxedSIMD));
 for_each_operator!(filter_define_relaxed_simd);
+filter_operators!(filter_define_function_references(@function_references) | define_proposal_operator(FunctionReferencesOperator, FunctionReferences));
+for_each_operator!(filter_define_function_references);
+filter_operators!(filter_define_memory_control(@memory_control) | define_proposal_operator(MemoryControlOperator, MemoryControl));
+for_each_operator!(filter_define_memory_control);
 
 /// Used both as a way to make code easier to read, as well as a wway to remove the data lifetime of operators
 #[derive(Clone, Debug)]
@@ -189,6 +193,8 @@ pub enum OperatorByProposal {
     Threads(ThreadsOperator),
     SIMD(SIMDOperator),
     RelaxedSIMD(RelaxedSIMDOperator),
+    FunctionReferences(FunctionReferencesOperator),
+    MemoryControl(MemoryControlOperator),
 }
 
 impl OperatorByProposal {
@@ -205,6 +211,8 @@ impl OperatorByProposal {
             Self::Threads(op) => op.opcode(),
             Self::SIMD(op) => op.opcode(),
             Self::RelaxedSIMD(op) => op.opcode(),
+            Self::FunctionReferences(op) => op.opcode(),
+            Self::MemoryControl(op) => op.opcode(),
         }
     }
 }
