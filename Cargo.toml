@@ -1,6 +1,6 @@
 [package]
 name = "wasm-opcodes"
-version = "0.115.0"
+version = "0.115.1"
 edition = "2021"
 license = "MIT"
 description = "A set of procedural enums useful for readabilty when implementing something over all wasm instructions."
