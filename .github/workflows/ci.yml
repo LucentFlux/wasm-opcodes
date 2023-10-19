@@ -22,7 +22,7 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
           components: rust-src
-      - run: RUSTFLAGS="--cfg=web_sys_unstable_apis" cargo +nightly check -Zbuild-std --target wasm32-unknown-unknown --all-targets
+      - run: RUSTFLAGS="--cfg=web_sys_unstable_apis" cargo +nightly check -Z build-std=panic_abort,std --target wasm32-unknown-unknown --all-targets
 
   cargo-deny:
     runs-on: ubuntu-22.04
