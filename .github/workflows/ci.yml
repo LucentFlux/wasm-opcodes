@@ -10,8 +10,8 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo check
-      
+      - run: cargo check --all-targets
+
   web_build:
     name: Web build
     runs-on: ubuntu-latest
@@ -22,7 +22,7 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
           components: rust-src
-      - run: RUSTFLAGS="--cfg=web_sys_unstable_apis" cargo +nightly check -Zbuild-std --target wasm32-unknown-unknown
+      - run: RUSTFLAGS="--cfg=web_sys_unstable_apis" cargo +nightly check -Zbuild-std --target wasm32-unknown-unknown --all-targets
 
   cargo-deny:
     runs-on: ubuntu-22.04
