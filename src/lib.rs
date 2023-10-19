@@ -1,4 +1,3 @@
-#![feature(macro_metavar_expr)]
 #![recursion_limit = "8192"]
 
 //! Implementing something on top of [`wasmparser`] is slightly tedious due to the number of operations that it can parse, usually
@@ -101,24 +100,24 @@ pub mod proposals {
 
     /// Defines a new macro that filters operations by a proposal
     macro_rules! filter_operators {
-        ($macro_name:ident (@ $filter_token:tt $(, !$filter_op:tt)* $(,)?) | $called_macro:ident($($args:tt)*)) => {
+        ($d:tt $macro_name:ident (@ $filter_token:tt $(, !$filter_op:tt)* $(,)?) | $called_macro:ident($($args:tt)*)) => {
             macro_rules! $macro_name {
-                ((munch) { $$($$filtered:tt)* }) => {
-                    $called_macro!{$($args)* $$($$filtered)*}
+                ((munch) { $d ($d filtered:tt)* }) => {
+                    $called_macro!{$($args)* $d ($d filtered)*}
                 };
                 $(
-                    ((munch) { $$($$filtered:tt)* } @$$proposal:ident $filter_op $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                        $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
+                    ((munch) { $d ($d filtered:tt)* } @$d proposal:ident $filter_op $d ({ $d ($d payload:tt)* })? => $d visit:ident $d ($d others:tt)*) => {
+                        $macro_name!{(munch) { $d ($d filtered)* } $d ($d others)*}
                     };
                 )*
-                ((munch) { $$($$filtered:tt)* } @$filter_token $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                    $macro_name!{(munch) { $$($$filtered)* @$filter_token $$op $$({ $$($payload)* })? => $$visit } $$($$others)*}
+                ((munch) { $d ($d filtered:tt)* } @$filter_token $d op:ident $d ({ $d ($d payload:tt)* })? => $d visit:ident $d ($d others:tt)*) => {
+                    $macro_name!{(munch) { $d ($d filtered)* @$filter_token $d op $d ({ $d ($payload)* })? => $d visit } $d ($d others)*}
                 };
-                ((munch) { $$($$filtered:tt)* } @$$proposal:ident $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                    $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
+                ((munch) { $d ($d filtered:tt)* } @$d proposal:ident $d op:ident $d ({ $d ($d payload:tt)* })? => $d visit:ident $d ($d others:tt)*) => {
+                    $macro_name!{(munch) { $d ($d filtered)* } $d ($d others)*}
                 };
-                ($$($$others:tt)*) => {
-                    $macro_name!{(munch) { } $$($$others)*}
+                ($d ($d others:tt)*) => {
+                    $macro_name!{(munch) { } $d ($d others)*}
                 }
             }
         }
@@ -174,7 +173,7 @@ pub mod proposals {
         }
     }
 
-    filter_operators!(filter_define_mvp(@mvp, 
+    filter_operators!($ filter_define_mvp(@mvp, 
         !End,
         !Block,
         !Loop,
@@ -188,29 +187,29 @@ pub mod proposals {
         !CallIndirect,
     ) | define_proposal_operator(MVPOperator, MVP));
     for_each_operator!(filter_define_mvp);
-    filter_operators!(filter_define_exceptions(@exceptions) | define_proposal_operator(ExceptionsOperator, Exceptions));
+    filter_operators!($ filter_define_exceptions(@exceptions) | define_proposal_operator(ExceptionsOperator, Exceptions));
     for_each_operator!(filter_define_exceptions);
-    filter_operators!(filter_define_tail_call(@tail_call) | define_proposal_operator(TailCallOperator, TailCall));
+    filter_operators!($ filter_define_tail_call(@tail_call) | define_proposal_operator(TailCallOperator, TailCall));
     for_each_operator!(filter_define_tail_call);
-    filter_operators!(filter_define_reference_types(@reference_types) | define_proposal_operator(ReferenceTypesOperator, ReferenceTypes));
+    filter_operators!($ filter_define_reference_types(@reference_types) | define_proposal_operator(ReferenceTypesOperator, ReferenceTypes));
     for_each_operator!(filter_define_reference_types);
-    filter_operators!(filter_define_sign_extension(@sign_extension) | define_proposal_operator(SignExtensionOperator, SignExtension));
+    filter_operators!($ filter_define_sign_extension(@sign_extension) | define_proposal_operator(SignExtensionOperator, SignExtension));
     for_each_operator!(filter_define_sign_extension);
-    filter_operators!(filter_define_saturating_float_to_int(@saturating_float_to_int) | define_proposal_operator(SaturatingFloatToIntOperator, SaturatingFloatToInt));
+    filter_operators!($ filter_define_saturating_float_to_int(@saturating_float_to_int) | define_proposal_operator(SaturatingFloatToIntOperator, SaturatingFloatToInt));
     for_each_operator!(filter_define_saturating_float_to_int);
-    filter_operators!(filter_define_bulk_memory(@bulk_memory) | define_proposal_operator(BulkMemoryOperator, BulkMemory));
+    filter_operators!($ filter_define_bulk_memory(@bulk_memory) | define_proposal_operator(BulkMemoryOperator, BulkMemory));
     for_each_operator!(filter_define_bulk_memory);
-    filter_operators!(filter_define_threads(@threads) | define_proposal_operator(ThreadsOperator, Threads));
+    filter_operators!($ filter_define_threads(@threads) | define_proposal_operator(ThreadsOperator, Threads));
     for_each_operator!(filter_define_threads);
-    filter_operators!(filter_define_simd(@simd) | define_proposal_operator(SIMDOperator, SIMD));
+    filter_operators!($ filter_define_simd(@simd) | define_proposal_operator(SIMDOperator, SIMD));
     for_each_operator!(filter_define_simd);
-    filter_operators!(filter_define_relaxed_simd(@relaxed_simd) | define_proposal_operator(RelaxedSIMDOperator, RelaxedSIMD));
+    filter_operators!($ filter_define_relaxed_simd(@relaxed_simd) | define_proposal_operator(RelaxedSIMDOperator, RelaxedSIMD));
     for_each_operator!(filter_define_relaxed_simd);
-    filter_operators!(filter_define_function_references(@function_references) | define_proposal_operator(FunctionReferencesOperator, FunctionReferences));
+    filter_operators!($ filter_define_function_references(@function_references) | define_proposal_operator(FunctionReferencesOperator, FunctionReferences));
     for_each_operator!(filter_define_function_references);
-    filter_operators!(filter_define_memory_control(@memory_control) | define_proposal_operator(MemoryControlOperator, MemoryControl));
+    filter_operators!($ filter_define_memory_control(@memory_control) | define_proposal_operator(MemoryControlOperator, MemoryControl));
     for_each_operator!(filter_define_memory_control);
-    filter_operators!(filter_define_gc(@gc) | define_proposal_operator(GCOperator, GC));
+    filter_operators!($ filter_define_gc(@gc) | define_proposal_operator(GCOperator, GC));
     for_each_operator!(filter_define_gc);
 
     impl<'a> OperatorByProposal<'a> {
