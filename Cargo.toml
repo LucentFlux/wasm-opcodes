@@ -1,10 +1,21 @@
 [package]
 name = "wasm-opcodes"
-version = "0.1.0"
+version = "0.115.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "A set of procedural enums useful for readabilty when implementing something over all wasm instructions."
+homepage = "https://github.com/LucentFlux/wasm-opcodes"
+repository = "https://github.com/LucentFlux/wasm-opcodes"
+readme = "README.md"
+keywords = ["parser", "WebAssembly", "wasm", "utility"]
+include = [
+    "/Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "/src/**",
+    "/tests/**",
+]
 
 [dependencies]
-wasmparser = { workspace = true }
+wasmparser = "0.115.0"
 paste = "1.0"
