@@ -42,89 +42,22 @@ macro_rules! define_opcode {
 }
 for_each_operator!(define_opcode);
 
-/// Defines a new macro that filters operations by a proposal
-macro_rules! filter_operators {
-    ($macro_name:ident (@ $filter_token:tt $(, !$filter_op:tt)* $(,)?) | $called_macro:ident($($args:tt)*)) => {
-        macro_rules! $macro_name {
-            ((munch) { $$($$filtered:tt)* }) => {
-                $called_macro!{$($args)* $$($$filtered)*}
-            };
-            $(
-                ((munch) { $$($$filtered:tt)* } @$$proposal:ident $filter_op $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                    $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
-                };
-            )*
-            ((munch) { $$($$filtered:tt)* } @$filter_token $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                $macro_name!{(munch) { $$($$filtered)* @$filter_token $$op $$({ $$($payload)* })? => $$visit } $$($$others)*}
-            };
-            ((munch) { $$($$filtered:tt)* } @$$proposal:ident $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
-                $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
-            };
-            ($$($$others:tt)*) => {
-                $macro_name!{(munch) { } $$($$others)*}
-            }
-        }
-    }
-}
-
-macro_rules! define_make_operator_fn {
-    ($enum_name:ident( $struct_name:ident :: $op:ident $({ $($field:ident : $field_ty:ty),* $(,)? })? )) => {
-        paste::paste!{
-            fn [< make_op_by_proposal_ $op:snake >] <'a> ( $($($field : $field_ty),* )* ) -> OperatorByProposal<'a> {
-                OperatorByProposal::$enum_name(
-                    $struct_name::$op {$($($field),* )*}
-                )
-            }
-        }
-    }
-}
-
-/// Defines a struct with some identity, to be used with the filter to have a set of only some opcodes
-macro_rules! define_proposal_operator {
-    ($struct_name:ident, $enum_name:ident $(@$proposal:ident $op:ident $({ $($field:ident : $field_ty:ty),* $(,)? })? => $visit:ident)*) => {
-        #[derive(Clone, Debug)]
-        #[doc = concat!("A subset of WebAssembly operations given by the ", stringify!($enum_name), " proposal")]
-        pub enum $struct_name {
-            $(
-                $op $({ $($field : $field_ty,)* })?,
-            )*
-        }
-
-        impl $struct_name {
-            pub fn opcode(&self) -> OpCode {
-                match &self {
-                    $(
-                        Self::$op { .. } => OpCode::$op,
-                    )*
-                }
-            }
-        }
-
-        $(
-            define_make_operator_fn! { $enum_name ( $struct_name :: $op $({ $($field : $field_ty),* })* ) }
-        )*
-    }
-}
-
-use proposals::*;
-
 /// A hierarchy of all WebAssembly operations, split by proposal.
-#[derive(Clone, Debug)]
 pub enum OperatorByProposal<'a> {
-    ControlFlow(ControlFlowOperator<'a>),
-    MVP(MVPOperator),
-    Exceptions(ExceptionsOperator),
-    TailCall(TailCallOperator),
-    ReferenceTypes(ReferenceTypesOperator),
-    SignExtension(SignExtensionOperator),
-    SaturatingFloatToInt(SaturatingFloatToIntOperator),
-    BulkMemory(BulkMemoryOperator),
-    Threads(ThreadsOperator),
-    SIMD(SIMDOperator),
-    RelaxedSIMD(RelaxedSIMDOperator),
-    FunctionReferences(FunctionReferencesOperator),
-    MemoryControl(MemoryControlOperator),
-    GC(GCOperator),
+    ControlFlow(proposals::ControlFlowOperator<'a>),
+    MVP(proposals::MVPOperator),
+    Exceptions(proposals::ExceptionsOperator),
+    TailCall(proposals::TailCallOperator),
+    ReferenceTypes(proposals::ReferenceTypesOperator),
+    SignExtension(proposals::SignExtensionOperator),
+    SaturatingFloatToInt(proposals::SaturatingFloatToIntOperator),
+    BulkMemory(proposals::BulkMemoryOperator),
+    Threads(proposals::ThreadsOperator),
+    SIMD(proposals::SIMDOperator),
+    RelaxedSIMD(proposals::RelaxedSIMDOperator),
+    FunctionReferences(proposals::FunctionReferencesOperator),
+    MemoryControl(proposals::MemoryControlOperator),
+    GC(proposals::GCOperator),
 }
 
 macro_rules! impl_op_by_proposal {
@@ -133,7 +66,7 @@ macro_rules! impl_op_by_proposal {
             fn from(op: wasmparser::Operator<'a>) -> Self {
                 match op {
                     $(
-                        wasmparser::Operator::$op $({ $($field),* })* => paste::paste!{ [< make_op_by_proposal_ $op:snake >] ( $($($field),* )* ) },
+                        wasmparser::Operator::$op $({ $($field),* })* => paste::paste!{ proposals::[< make_op_by_proposal_ $op:snake >] ( $($($field),* )* ) },
                     )*
                 }
             }
@@ -142,8 +75,104 @@ macro_rules! impl_op_by_proposal {
 }
 for_each_operator!(impl_op_by_proposal);
 
+impl<'a> From<OperatorByProposal<'a>> for wasmparser::Operator<'a> {
+    fn from(op: OperatorByProposal<'a>) -> Self {
+        match op {
+            OperatorByProposal::ControlFlow(op) => op.into(),
+            OperatorByProposal::MVP(op) => op.into(),
+            OperatorByProposal::Exceptions(op) => op.into(),
+            OperatorByProposal::TailCall(op) => op.into(),
+            OperatorByProposal::ReferenceTypes(op) => op.into(),
+            OperatorByProposal::SignExtension(op) => op.into(),
+            OperatorByProposal::SaturatingFloatToInt(op) => op.into(),
+            OperatorByProposal::BulkMemory(op) => op.into(),
+            OperatorByProposal::Threads(op) => op.into(),
+            OperatorByProposal::SIMD(op) => op.into(),
+            OperatorByProposal::RelaxedSIMD(op) => op.into(),
+            OperatorByProposal::FunctionReferences(op) => op.into(),
+            OperatorByProposal::MemoryControl(op) => op.into(),
+            OperatorByProposal::GC(op) => op.into(),
+        }
+    }
+}
+
 pub mod proposals {
     use super::*;
+
+    /// Defines a new macro that filters operations by a proposal
+    macro_rules! filter_operators {
+        ($macro_name:ident (@ $filter_token:tt $(, !$filter_op:tt)* $(,)?) | $called_macro:ident($($args:tt)*)) => {
+            macro_rules! $macro_name {
+                ((munch) { $$($$filtered:tt)* }) => {
+                    $called_macro!{$($args)* $$($$filtered)*}
+                };
+                $(
+                    ((munch) { $$($$filtered:tt)* } @$$proposal:ident $filter_op $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
+                        $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
+                    };
+                )*
+                ((munch) { $$($$filtered:tt)* } @$filter_token $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
+                    $macro_name!{(munch) { $$($$filtered)* @$filter_token $$op $$({ $$($payload)* })? => $$visit } $$($$others)*}
+                };
+                ((munch) { $$($$filtered:tt)* } @$$proposal:ident $$op:ident $$({ $$($$payload:tt)* })? => $$visit:ident $$($$others:tt)*) => {
+                    $macro_name!{(munch) { $$($$filtered)* } $$($$others)*}
+                };
+                ($$($$others:tt)*) => {
+                    $macro_name!{(munch) { } $$($$others)*}
+                }
+            }
+        }
+    }
+
+    macro_rules! define_make_operator_fn {
+        ($enum_name:ident( $struct_name:ident :: $op:ident $({ $($field:ident : $field_ty:ty),* $(,)? })? )) => {
+            paste::paste!{
+                #[inline(always)]
+                pub(crate) fn [< make_op_by_proposal_ $op:snake >] <'a> ( $($($field : $field_ty),* )* ) -> OperatorByProposal<'a> {
+                    OperatorByProposal::$enum_name(
+                        $struct_name::$op {$($($field),* )*}
+                    )
+                }
+            }
+        }
+    }
+
+    /// Defines a struct with some identity, to be used with the filter to have a set of only some opcodes
+    macro_rules! define_proposal_operator {
+        ($struct_name:ident, $enum_name:ident $(@$proposal:ident $op:ident $({ $($field:ident : $field_ty:ty),* $(,)? })? => $visit:ident)*) => {
+            #[derive(Clone, Debug)]
+            #[doc = concat!("A subset of WebAssembly operations given by the ", stringify!($enum_name), " proposal")]
+            pub enum $struct_name {
+                $(
+                    $op $({ $($field : $field_ty,)* })*,
+                )*
+            }
+
+            impl $struct_name {
+                pub fn opcode(&self) -> OpCode {
+                    match &self {
+                        $(
+                            Self::$op { .. } => OpCode::$op,
+                        )*
+                    }
+                }
+            }
+
+            impl<'a> From<$struct_name> for wasmparser::Operator<'a> {
+                fn from(op: $struct_name) -> Self {
+                    match op {
+                        $(
+                            $struct_name::$op $({ $($field,)* })* => wasmparser::Operator::$op $({ $($field,)* })*,
+                        )*
+                    }
+                }
+            }
+
+            $(
+                define_make_operator_fn! { $enum_name ( $struct_name :: $op $({ $($field : $field_ty),* })* ) }
+            )*
+        }
+    }
 
     filter_operators!(filter_define_mvp(@mvp, 
         !End,
@@ -205,7 +234,6 @@ pub mod proposals {
         }
     }
 
-    #[derive(Clone, Debug)]
     /// MVP operators which do some kind of control flow.
     pub enum ControlFlowOperator<'a> {
         End,
@@ -226,8 +254,7 @@ pub mod proposals {
             relative_depth: u32,
         },
         BrTable {
-            targets: Box<dyn Iterator<Item = wasmparser::Result<u32>> + 'a>,
-            default_target: u32,
+            targets: wasmparser::BrTable<'a>,
         },
         Return,
         Call {
@@ -254,6 +281,40 @@ pub mod proposals {
                 ControlFlowOperator::Return => OpCode::Return,
                 ControlFlowOperator::Call { .. } => OpCode::Call,
                 ControlFlowOperator::CallIndirect { .. } => OpCode::CallIndirect,
+            }
+        }
+    }
+
+    impl<'a> From<ControlFlowOperator<'a>> for wasmparser::Operator<'a> {
+        fn from(op: ControlFlowOperator<'a>) -> Self {
+            match op {
+                ControlFlowOperator::End => wasmparser::Operator::End,
+                ControlFlowOperator::Block { blockty } => wasmparser::Operator::Block { blockty },
+                ControlFlowOperator::Loop { blockty } => wasmparser::Operator::Loop { blockty },
+                ControlFlowOperator::If { blockty } => wasmparser::Operator::If { blockty },
+                ControlFlowOperator::Else => wasmparser::Operator::Else,
+                ControlFlowOperator::Br { relative_depth } => {
+                    wasmparser::Operator::Br { relative_depth }
+                }
+                ControlFlowOperator::BrIf { relative_depth } => {
+                    wasmparser::Operator::BrIf { relative_depth }
+                }
+                ControlFlowOperator::BrTable { targets } => {
+                    wasmparser::Operator::BrTable { targets }
+                }
+                ControlFlowOperator::Return => wasmparser::Operator::Return,
+                ControlFlowOperator::Call { function_index } => {
+                    wasmparser::Operator::Call { function_index }
+                }
+                ControlFlowOperator::CallIndirect {
+                    type_index,
+                    table_index,
+                    table_byte,
+                } => wasmparser::Operator::CallIndirect {
+                    type_index,
+                    table_index,
+                    table_byte,
+                },
             }
         }
     }
@@ -285,14 +346,7 @@ pub mod proposals {
         table_index: u32,
         table_byte: u8,
     })}
-    fn make_op_by_proposal_br_table<'a>(op: wasmparser::BrTable<'a>) -> OperatorByProposal<'a> {
-        let default_target = targets.default();
-        let targets = targets.targets();
-        Ok(OperatorByProposal::ControlFlow(
-            ControlFlowOperator::BrTable {
-                default_target,
-                targets,
-            },
-        ))
-    }
+    define_make_operator_fn! {ControlFlow(ControlFlowOperator::BrTable {
+        targets: wasmparser::BrTable<'a>,
+    })}
 }
