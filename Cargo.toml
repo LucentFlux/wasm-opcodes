@@ -17,5 +17,5 @@ include = [
 ]
 
 [dependencies]
-wasmparser = "0.115.0"
+wasmparser = "0.117.0"
 paste = "1.0"
